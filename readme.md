@@ -2,8 +2,8 @@
 
 ## [Kernel Attacks Through User-Mode Callbacks][0]
 
-[Black Hat USA 2011][1]
-[White Paper][2]
+[黑帽 美国 2011][1]
+[论文][2]
 
 - 作者：Tarjei Mandt
 - 译者：谷征雄 <rectigu@gmail.com>

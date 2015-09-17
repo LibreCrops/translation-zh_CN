@@ -1,1 +1,1 @@
-/home/novicelive/private/tr-temp/tarjei-mandt/cn/README.md
+README.md
