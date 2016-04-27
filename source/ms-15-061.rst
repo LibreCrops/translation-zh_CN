@@ -17,16 +17,16 @@
 1. 简介
 -------
 
-2015 年 6 月，微软发布了 MS15-061 安全通告，修复了许多漏洞【1】。
-本文旨在提供对其中一个 win32k.sys 漏洞的详细分析， 并且阐述了在 Windows
-7 SP1 上利用这类漏洞的必要的细节。
+2015 年 6 月，微软发布了 `MS15-061`_ 安全通告，修复了诸多漏洞【1】。
+本文将详细分析其中的一个 win32k 漏洞， 并且阐述在 Windows
+7 SP1 上利用这类漏洞的必要细节。
 
 起初，我尝试重现出现在 Duqu 2.0 样本中的本地提权漏洞。
-经过一些研究与补丁分析，我发现 Udi Yavo 发现了一些非常有意思 而且与 Duqu
+经过一些研究与补丁分析，我发现 Udi Yavo 发现了一些非常有意思而且与 Duqu
 2.0 使用的漏洞（CVE-2015-2360）类型一样的漏洞。
 更重要的是，我碰巧触发了同样的代码路径。
 
-请注意我使用的是 32 位的 Windows 7 SP1 来做初始分析与漏洞利用。
+请注意我使用 32 位的 Windows 7 SP1 来做初始分析与漏洞利用。
 不过本文阐述的技巧也同样适用于 64 位的 Windows。事实上，
 在本文的方法上做一点很小的改动就可以很轻松地开发出 64 位的利用程序。
 
@@ -36,7 +36,7 @@
 这个是一个位于 win32k.sys 的释放后重用漏洞。
 漏洞的起因是没有为用户模式回调函数给窗口内核类型加锁， 该漏洞可以由
 win32k.sys 中的 xxxSetClassLong 函数触发。
-成功利用该漏洞将导致提升特权到“NT AUTHORITY/SYSTEM”。
+成功利用该漏洞将导致特权提升到“NT AUTHORITY/SYSTEM”。
 
 1.2. 受影响的操作系统
 *********************
@@ -63,9 +63,8 @@ win32k.sys 中的 xxxSetClassLong 函数触发。
 
 该漏洞的本质与用于 RussianDoll（CVE-2015-1701） 与用于 Duqu
 2.0（CVE-2015-2360）类似。 这些漏洞的根源都是在执行 CopyClientImage
-用户模式回调函数时
-没能正确地给窗口内核类型加锁。特别地，该漏洞影响的对象 与用于 Duqu 2.0
-的是一样的，也就是 tagCLS 内核结构。
+用户模式回调函数时没能正确地给窗口内核类型加锁。
+特别地，该漏洞影响的对象 与用于 Duqu 2.0 的是一样的，也就是 tagCLS 内核结构。
 
 2.1.1. 补丁对比
 +++++++++++++++
@@ -88,8 +87,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF83AD97                        push     edi
     .text:BF83AD98                        push     esi
     .text:BF83AD99                        push     eax
-    .text:BF83AD9A                        call     _xxxSetClassCursor@16 ;
-    xxxSetClassCursor(x,x,x,x) ; xxxSetCursor leads to xxxSetClassIcon
+    .text:BF83AD9A                        call     _xxxSetClassCursor@16 ; xxxSetClassCursor(x,x,x,x) ; xxxSetClassCursor 会执行到 xxxSetClassIcon
     .text:BF83AD9F                        call     __SEH_epilog4
     .text:BF83ADA4                        retn     10h
 
@@ -107,8 +105,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF83ADC2                        push     edi
     .text:BF83ADC3                        push     esi
     .text:BF83ADC4                        push     [ebp+P]
-    .text:BF83ADC7                        call     _xxxSetClassCursor@16 ;
-    xxxSetClassCursor(x,x,x,x) ; xxxSetCursor leads to xxxSetClassIcon
+    .text:BF83ADC7                        call     _xxxSetClassCursor@16 ; xxxSetClassCursor(x,x,x,x) ; xxxSetClassCursor 会执行到 xxxSetClassIcon
     .text:BF83ADCC                        mov      edi, eax
     .text:BF83ADCE                        lea      eax, [ebp+var_34]
     .text:BF83ADD1                        push     eax
@@ -116,7 +113,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF83ADD3                        call     _ClassUnlock@8      ; ClassUnlock(x,x)
     .text:BF83ADD8                        mov      eax, edi
     .text:BF83ADDA                        jmp      loc_BF83AAE5
-    Snipped
+    ...
     .text:BF83AAE5                        call     __SEH_epilog4
     .text:BF83AAEA                        retn     10h
 
@@ -128,13 +125,12 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF92BDE7                       jz        short loc_BF92BDFF
     .text:BF92BDE9                       cmp       ebx, 0FFFFFFF2h
     .text:BF92BDEC                       jz        short loc_BF92BDFF
-    Snipped
+    ...
     .text:BF92BDFF                       push      ebx
     .text:BF92BE00                       push      esi
     .text:BF92BE01                       push      edi
     .text:BF92BE02                       push      [ebp+arg_0]
-    .text:BF92BE05                       call      _xxxSetClassIcon@16 ;
-    xxxSetClassIcon(x,x,x,x) ; xxxSetClassIcon leads to the user-mode callback
+    .text:BF92BE05                       call      _xxxSetClassIcon@16 ; xxxSetClassIcon(x,x,x,x) ; xxxSetClassIcon 会执行到用户模式回调函数
     .text:BF92BE0A
     .text:BF92BE0A                       mov       edi, [edi]
 
@@ -146,7 +142,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF92C3D5                       jz        short loc_BF92C3ED
     .text:BF92C3D7                       cmp       ebx, 0FFFFFFF2h
     .text:BF92C3DA                       jz        short loc_BF92C3ED
-    Snipped
+    ...
     .text:BF92C3ED                       lea       eax, [ebp+var_18]
     .text:BF92C3F0                       push      eax
     .text:BF92C3F1                       push      esi
@@ -157,8 +153,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
     .text:BF92C3FC                       push      edi
     .text:BF92C3FD                       push      esi
     .text:BF92C3FE                       push      [ebp+arg_0]
-    .text:BF92C401                       call      _xxxSetClassIcon@16 ;
-    xxxSetClassIcon(x,x,x,x) ; xxxSetClassIcon leads to the user-mode callback
+    .text:BF92C401                       call      _xxxSetClassIcon@16 ; xxxSetClassIcon(x,x,x,x) ; xxxSetClassIcon 会执行到用户模式回调函数
     .text:BF92C406                       lea       eax, [ebp+var_18]
     .text:BF92C409                       push      eax
     .text:BF92C40A                       push      esi
@@ -170,21 +165,22 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
 
 没能在用户模式回调函数的前后正确地实现 ClassLock 使得攻击者可以通过
 win32k 系统调用修改窗口内核类型结构，比如说
-tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型结构的修改与释放，而内核却继续操作已经被释放的内存。这是一个典型的利用
-win32k.sys 用户模式回调函数的释放后重用场景【3】。
+tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型结构的修改与释放，
+而内核却继续操作已经被释放的内存。
+这是一个典型的利用 win32k.sys 用户模式回调函数的释放后重用场景【3】。
 
 2.2.1. 调用链
 +++++++++++++
 
-为了重现的方便，我们使用取自全新安装的 Windows 7 SP1 的 win32k.sys
-驱动程序来做进一步的分析。
+为了方便重现，我们使用取自全新安装的 Windows 7 SP1 的 win32k.sys
+来做进一步的分析。
 
 ::
 
     文件              版本                 MD5
     win32k.sys       6.1.7601.17514      687464342342b933d6b7faa4a907af4c
 
-用恰当的参数调用 SetClassLong 用户模式 API
+使用恰当的参数调用 SetClassLong 用户模式 API
 设置图标属性能够触发存在漏洞的用户模式回调函数，正如 Udi Yavo
 在他的分析【2】中描述的那样。举个例子，这可以通过下面的代码片段触发。
 
@@ -193,8 +189,8 @@ win32k.sys 用户模式回调函数的释放后重用场景【3】。
     ; 触发用户模式回调函数
     SetClassLongPtr(hwnd, GCLP_HICON, (LONG_PTR)LoadIcon(NULL, IDI_QUESTION));
 
-这种表现可以通过在 KeUserModeCallback 函数设置恰当的断点来展示，如下
-WinDbg 调用栈所示；
+这种表现可以通过在 KeUserModeCallback 函数设置恰当的断点来展示，
+如下 WinDbg 调用栈所示；
 
 ::
 
@@ -231,15 +227,19 @@ WinDbg 调用栈所示；
 3. 触发漏洞
 -----------
 
-正如 Aaron
-在他的论文【4】中所说的那样，漏洞利用程序的开发通常是通过一系列的阶段来实现的。我们通常把触发漏洞分类为第一阶段的内存破坏。这是一种很好的看待现代漏洞利用程序开发过程的方式，因为在现在要开发军火级别的漏洞利用程序所需的信息很容易让人迷失方向。
+正如 Aaron 在他的论文【4】中所说的那样，
+漏洞利用程序的开发通常是通过一系列的阶段来实现的。
+我们通常把触发漏洞分类为第一阶段的内存破坏。
+这是一种很好的看待现代漏洞利用程序开发过程的方式，
+因为在现在要开发军火级别的漏洞利用程序所需的信息很容易让人摸不清方向。
 
 3.1. tagCLS 结构
 ****************
 
-利用任何一个释放后重用漏洞的第一步就是弄清楚存在漏洞的对象是什么：熟悉哪个对象被释放掉了。在这个漏洞中，存在漏洞的对象时
-tagCLS 内核窗口类型结构。这是一个可以通过 RegisterClass 用户模式
-API【5】实例化的内核类型结构，该函数返回的原子【6】可以使用 CreateWindow
+利用任何一个释放后重用漏洞的第一步就是弄清楚存在漏洞的对象是什么：
+熟悉哪个对象被释放掉了。在这个漏洞中，存在漏洞的对象是 tagCLS 内核窗口类型结构。
+这是一个可以通过 RegisterClass 用户模式 API【5】实例化的内核类型结构，
+该函数返回的原子【6】可以使用 CreateWindow
 或者 CreateWindowEx【7】用户模式 API 来创建 GUI 窗口。
 
 下面是 WinDbg 输出的 tagCLS 结构与它的大小。
@@ -278,41 +278,36 @@ API【5】实例化的内核类型结构，该函数返回的原子【6】可以
 3.2. 监视桌面堆
 ***************
 
-桌面堆用于为 win32k.sys 驱动程序存储 GUI
-对象【3】。为了监视桌面堆，我个人使用 PyKd，一个赋予 WinDbg 调试器
-Python 编程能力的拓展。我使用 PyKd
-借助硬件断点来实现软挂钩并且在开发过程中使用 Python
-回调函数来做分析。不过，出于完整性考虑，下面的 WinDbg
-脚本会帮助监视桌面堆的分配与释放。
+桌面堆用于为 win32k.sys 驱动程序存储 GUI 对象【3】。
+为了监视桌面堆，我个人使用 PyKd，一个赋予 WinDbg 调试器 Python 编程能力的拓展。
+我使用 PyKd 借助硬件断点来实现软挂钩并且在开发过程中使用
+Python 回调函数来做分析。不过，出于完整性考虑，
+下面的 WinDbg 脚本会帮助监视桌面堆的分配与释放。
 
 监视桌面堆分配（64 位）
 
 ::
 
-    ba e 1 nt!RtlFreeHeap ".printf\"RtlFreeHeap(%p, 0x%x, %p)\", @rcx,
-    @edx, @r8; .echo ; gc";
-    ba e 1 nt!RtlAllocateHeap "r @$t2 = @r8; r @$t3 = @rcx; gu; .printf
-    \"RtlAllocateHeap(%p, 0x%x):\", @$t3, @$t2; r @rax; gc";
+    ba e 1 nt!RtlFreeHeap ".printf\"RtlFreeHeap(%p, 0x%x, %p)\", @rcx, @edx, @r8; .echo ; gc";
+    ba e 1 nt!RtlAllocateHeap "r @$t2 = @r8; r @$t3 = @rcx; gu; .printf \"RtlAllocateHeap(%p, 0x%x):\", @$t3, @$t2; r @rax; gc";
 
 监视桌面堆分配（32 位）
 
 ::
 
-    ba e 1 nt!RtlAllocateHeap "r @$t2 = poi(@esp+c); r @$t3 = poi(@esp+4);
-    gu; .printf \"RtlAllocateHeap(%p, 0x%x):\", @$t3, @$t2; r @eax; gc";
-    ba e 1 nt!RtlFreeHeap ".printf\"RtlFreeHeap(%p, 0x%x, %p)\",
-    poi(@esp+4), poi(@esp+8), poi(@esp+c); .echo ; gc"
+    ba e 1 nt!RtlAllocateHeap "r @$t2 = poi(@esp+c); r @$t3 = poi(@esp+4); gu; .printf \"RtlAllocateHeap(%p, 0x%x):\", @$t3, @$t2; r @eax; gc";
+    ba e 1 nt!RtlFreeHeap ".printf\"RtlFreeHeap(%p, 0x%x, %p)\", poi(@esp+4), poi(@esp+8), poi(@esp+c); .echo ; gc"
 
-请注意从现在开始，输出与 提供的 Python 代码片段都是我通过 PyKd 用来分析
+请注意从现在开始，输出与提供的 Python 代码片段都是我通过 PyKd 用来分析
 WinDbg 输出的回调逻辑。
 
 3.3. 触发用户模式回调
 *********************
 
-win32k
-使用用户模式回调函数来实现像应用程序定义的钩子和与用户模式交换数据等用户模式的操作。考虑到
-win32k 的内部机制已经在 Tarjei Mandt
-的研究【3】中详细阐述，我将会只提供对利用该漏洞所需要的结构做一个简单的介绍。
+win32k 使用用户模式回调函数来实现像应用程序定义的钩子和
+与用户模式交换数据等用户模式的操作。
+考虑到 win32k 的内部机制已经在 Tarjei Mandt 的研究【3】中详细阐述，
+我将会只提供对利用该漏洞所需要的结构做一个简单的介绍。
 
 下面这个给 PyKd 钩子的回调用于获取 PEB.KernelCallbackTable 的地址：
 
@@ -328,8 +323,8 @@ win32k 的内部机制已经在 Tarjei Mandt
          print("KernelCallBackTable: %s" % console[i+2])
          return int(console[i+2], 16)
 
-有了 PEB.KernelCallbackTable 的地址，我们就可以使用 WinDbg 的 dds
-命令把回调函数表及其相关联的符号显示出来。
+有了 PEB.KernelCallbackTable 的地址，
+我们就可以使用 WinDbg 的 dds 命令把回调函数表及其相关联的符号显示出来。
 
 ::
 
@@ -358,9 +353,9 @@ win32k 的内部机制已经在 Tarjei Mandt
     win32k!xxxCreateClassSmIcon+0x7f:
     .text:BF8A3A7D                          lea      esi, [edi+58h]
 
-看看 xxxClientCopyImage 函数调用。注意用于 KeUserModeCallback 调用的
-ApiNumber参数是 0x36，这是在回调表中的索引，也就是 ClientCopyImage
-回调：
+看看 xxxClientCopyImage 函数调用。
+注意用于 KeUserModeCallback 调用的 ApiNumber参数是 0x36，
+这是在回调表中的索引，也就是 ClientCopyImage 回调：
 
 ::
 
@@ -380,8 +375,9 @@ ApiNumber参数是 0x36，这是在回调表中的索引，也就是 ClientCopyI
     kd> dds 0x7708d568 + 0x4*0x36 L1
     7708d640 7707f55f USER32!__ClientCopyImage
 
-回忆一下 2.3
-节，这个用户模式回调函数可以被挂钩。注意现在这个回调函数指向我们的利用程序定义的钩子（ripmtso!hookClientCopyImage）：
+回忆一下 2.3 节，这个用户模式回调函数可以被挂钩。
+注意现在这个回调函数指向我们的利用程序定义的钩子
+（ripmtso!hookClientCopyImage）：
 
 ::
 
@@ -479,8 +475,9 @@ UnregisterClass 函数，那会怎样？
 3.5. 伪造 tagCLS 结构
 *********************
 
-利用这种类型漏洞的经典方式就是设置通过 SetWindowTextW
-设置窗口的标题栏，并因此强制实现任意大小的桌面堆分配。唯一需要注意的是，使用这种技巧的时候，不允许缓冲区中存在单字零，并且为了结束字符串【3】最后两个字节必须是零。
+利用这种类型漏洞的经典方式就是设置通过 SetWindowTextW 设置窗口的标题栏，
+并因此强制实现任意大小的桌面堆分配。唯一需要注意的是，使用这种技巧的时候，
+不允许缓冲区中存在单字零，并且为了结束字符串【3】最后两个字节必须是零。
 
 .. code:: c
 
@@ -495,7 +492,8 @@ UnregisterClass 函数，那会怎样？
 3.6. 非法访问
 *************
 
-简言之，我们能够通过被替换了的对象（偏移+0x58）使任意地址自减。注意我们只能控制自减地址的两个字节（举个例子，0x0000dead）：
+简言之，我们能够通过被替换了的对象（偏移+0x58）使任意地址自减。
+注意我们只能控制自减地址的两个字节（举个例子，0x0000dead）：
 
 ::
 
@@ -534,7 +532,8 @@ UnregisterClass 函数，那会怎样？
     982fdcc1 ff4804                dec      dword ptr [eax+4]        ds:0023:0000dead=????????
 
 偏移 0x58 是这个 tagCLS 对象的 spicnSm 成员，该成员在执行 HMUnlokObject
-操作是会被引用。该操作用于解锁（自减）给定对象的引用计数。因此，这将导致造成任意自减的场景。
+操作是会被引用。该操作用于解锁（自减）给定对象的引用计数。
+因此，这将导致造成任意自减的场景。
 
 4. 利用漏洞
 -----------
@@ -601,19 +600,19 @@ user32!NtUserDefSetText【4】调用到：
 4.2. 泄漏桌面堆的信息
 *********************
 
-现在，我将介绍一些用于从用户模式读取桌面堆的结构。需要注意的是所有的用户对象都被索引到了一张每会话的句柄表中，该表位于
+现在，我将介绍一些用于从用户模式读取桌面堆的结构。
+需要注意的是所有的用户对象都被索引到了一张每会话的句柄表中，该表位于
 win32k!gpvSharedBase【3】，并且该区被映射到了每一个 GUI
-进程（用户模式）。这对漏洞利用程序开发者来说是一个天大的好消息，因此我们可以从用户模式读取桌面堆的任意内容。这个特性可以看作是一个强有力的信息泄漏。
-因为我们可以从用户模式映射的桌面堆获取任意桌面堆对象的内容，所以我们可以备份被篡改的
-tagCLS
-结构并用它来恰当地从存在漏洞的代码路径退出。更具体地讲，在将其替换为利用
-NtUserDefSetText 系统调用篡改过的 tagCLS
-之前，我们使用桌面堆泄漏来复制一份 tagCLS。在我们拿到一份有效的 tagCLS
-对象的复本后，我们修改位于偏移 0x58
-处的指针，该指针在后面将会用来实现任意自减。
+进程（用户模式）。这对漏洞利用程序开发者来说是一个天大的好消息，
+因此我们可以从用户模式读取桌面堆的任意内容。这个特性可以看作是一个强有力的信息泄漏。
+因为我们可以从用户模式映射的桌面堆获取任意桌面堆对象的内容，
+所以我们可以备份被篡改的 tagCLS 结构并用它来恰当地从存在漏洞的代码路径退出。
+更具体地讲，在将其替换为利用 NtUserDefSetText 系统调用篡改过的 tagCLS 之前，
+我们使用桌面堆泄漏来复制一份 tagCLS。在我们拿到一份有效的 tagCLS 对象的复本后，
+我们修改位于偏移 0x58 处的指针，该指针在后面将会用来实现任意自减。
 读取用户模式映射的桌面堆的过程已经在 Tarjei 的论文【3】与 Aaron
-的论文【4】中阐述。简单讲，我们能用 NtCurrentTeb() 来定位
-Win32ClientInfo 结构：
+的论文【4】中阐述。简单讲，
+我们能用 NtCurrentTeb() 来定位 Win32ClientInfo 结构：
 
 .. code:: c
 
@@ -664,8 +663,9 @@ user32!gSharedInfo（用户模式）与 win32k!gSharedInfo（内核模式）指�
 aheList 成员指向一个 win32k!\_HANDLEENTRY
 数组，该数组包含指向对应句柄实际内核模式地址的指针。因为窗口句柄的低 16
 比特实际上是 aheList
-数组的索引，所以我们可以获取任意窗口桌面堆对象的内核内存指针。因此，我们可以计算内核对象映射的用户模式内存。这可以通过从内核指针减去
-ulClientDelat 计算出。
+数组的索引，所以我们可以获取任意窗口桌面堆对象的内核内存指针。
+因此，我们可以计算内核对象映射的用户模式内存。
+这可以通过从内核指针减去 ulClientDelta 计算出。
 
 整合到一起，我们现在可以备份要攻击的 tagCLS 对象。然后，篡改偏移 0x58
 来任意自减。
@@ -756,27 +756,36 @@ winlogon.exe 的内存空间中运行的。
 
 |image0|
 
+
 5. 结论
 -------
 
-桌面堆用户模式映射的存在使得这个漏洞的利用十分有趣。它几乎可以被认为是一个强有力的信息泄漏。现在，漏洞利用的场景已经向客户端程序转移。为了绕过客户端程序实现的沙箱，内核漏洞利用程序成为了需要。
 
-我期待读者的反馈或者错误纠正。如果我那里弄错了或者没有恰当的引用资料来源，你可以通过
-Twitter @d0mzw，或者邮箱 dominicwang@nccgroup.trust
-联系到我，我会予以修正并重新发布。
+桌面堆用户模式映射的存在使得这个漏洞的利用十分有趣。
+它几乎可以被认为是一个强有力的信息泄漏。
+现在，漏洞利用的场景已经向客户端程序转移。
+为了绕过客户端程序实现的沙箱，内核漏洞利用程序成为了需要。
+
+我期待读者的反馈或者错误纠正。如果我那里弄错了或者没有恰当的引用资料来源，
+你可以通过 Twitter @d0mzw，或者邮箱 dominicwang@nccgroup.trust
+联系到我，我会修正并重新发布。
+
 
 6. 致谢
 -------
 
+
 我想感谢以下个人对漏洞研究所做出的慷慨贡献:Tarjei Mandt，Mateusz
 Jurczyk， Nils， Udi Yavov， 还有 Aaron
-Adams。他们对主题的贡献使得我这次漏洞利用程序的开发变得更轻松。
+Adams。他们的贡献使得我这次漏洞利用程序的开发变得更轻松。
 
 最后我想感谢我的同事 Andrew Hickey，Aaron Adams 与 Michael Weber
-帮我做的审阅与有用的建议。
+帮我做的审阅与建议。
+
 
 7. 参考与进一步阅读
 -------------------
+
 
 [1] Microsoft, "Microsoft Security Bulletin MS15-061," 9 June 2015.
 [Online]. Available:
@@ -824,3 +833,6 @@ Available: https://github.com/vlad902/hacking-team-windows-kernel-lpe.
 https://media.blackhat.com/bh-us-12/Briefings/Cerrudo/BH\_US\_12\_Cerrudo\_Windows\_Kernel\_WP.pdf.
 
 .. |image0| image:: calc.png
+
+
+.. _MS15-061: https://technet.microsoft.com/en-us/library/security/ms15-061.aspx
