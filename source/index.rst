@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 3
 
       基于用户模式回调函数的内核漏洞分析、利用与防范 <tarjei.rst>
+      利用 MS15-061 Windows 内核释放后重用漏洞（win32k!xxxSetClassLong） <ms-15-061.rst>
 
 
 Indices and tables
