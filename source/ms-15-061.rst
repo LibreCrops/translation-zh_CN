@@ -17,7 +17,7 @@
 1. 简介
 -------
 
-2015 年 6 月，微软发布了 `MS15-061`_ 安全通告，修复了诸多漏洞【1】。
+2015 年 6 月，微软发布了 `MS15-061`_ 安全通告，修复了诸多漏洞 [1]_ 。
 本文将详细分析其中的一个 win32k 漏洞， 并且阐述在 Windows
 7 SP1 上利用这类漏洞的必要细节。
 
@@ -41,7 +41,7 @@ win32k.sys 中的 xxxSetClassLong 函数触发。
 1.2. 受影响的操作系统
 *********************
 
-该漏洞影响的版本从 Windows XP 一直到 Windows 7 SP1【2】。
+该漏洞影响的版本从 Windows XP 一直到 Windows 7 SP1 [2]_ 。
 
 -  Windows 7
 -  Windows Vista
@@ -53,7 +53,7 @@ win32k.sys 中的 xxxSetClassLong 函数触发。
 1.3. 荣誉
 *********
 
-该漏洞由 enSilo 的 Udi Yavo【2】发现并阐述。
+该漏洞由 enSilo 的 Udi Yavo [2]_ 发现并阐述。
 
 2. 初始分析
 -----------
@@ -167,7 +167,7 @@ xxxSetClassCursor 也是如此。这可以在下面的补丁对比中看到。
 win32k 系统调用修改窗口内核类型结构，比如说
 tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型结构的修改与释放，
 而内核却继续操作已经被释放的内存。
-这是一个典型的利用 win32k.sys 用户模式回调函数的释放后重用场景【3】。
+这是一个典型的利用 win32k.sys 用户模式回调函数的释放后重用场景 [3]_ 。
 
 2.2.1. 调用链
 +++++++++++++
@@ -182,7 +182,7 @@ tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型�
 
 使用恰当的参数调用 SetClassLong 用户模式 API
 设置图标属性能够触发存在漏洞的用户模式回调函数，正如 Udi Yavo
-在他的分析【2】中描述的那样。举个例子，这可以通过下面的代码片段触发。
+在他的分析 [2]_ 中描述的那样。举个例子，这可以通过下面的代码片段触发。
 
 ::
 
@@ -221,13 +221,13 @@ tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型�
 4. 当代码在用户模式执行的时候，通过调用 win32k.sys
    系统调用桌面堆上的结构可能被改变；包括释放调 tagCLS 结构。
 5. 返回到内核模式之后，内核线程没有检查已经被修改的结构。这是一个典型的造成在调用
-   HMAUnlockObject【2】【3】时任意地址递减的释放后重用漏洞。
+   HMAUnlockObject [2]_ [3]_ 时任意地址递减的释放后重用漏洞。
 
 
 3. 触发漏洞
 -----------
 
-正如 Aaron 在他的论文【4】中所说的那样，
+正如 Aaron 在他的论文 [4]_ 中所说的那样，
 漏洞利用程序的开发通常是通过一系列的阶段来实现的。
 我们通常把触发漏洞分类为第一阶段的内存破坏。
 这是一种很好的看待现代漏洞利用程序开发过程的方式，
@@ -238,9 +238,9 @@ tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型�
 
 利用任何一个释放后重用漏洞的第一步就是弄清楚存在漏洞的对象是什么：
 熟悉哪个对象被释放掉了。在这个漏洞中，存在漏洞的对象是 tagCLS 内核窗口类型结构。
-这是一个可以通过 RegisterClass 用户模式 API【5】实例化的内核类型结构，
-该函数返回的原子【6】可以使用 CreateWindow
-或者 CreateWindowEx【7】用户模式 API 来创建 GUI 窗口。
+这是一个可以通过 RegisterClass 用户模式 API [5]_ 实例化的内核类型结构，
+该函数返回的原子 [6]_ 可以使用 CreateWindow
+或者 CreateWindowEx [7]_ 用户模式 API 来创建 GUI 窗口。
 
 下面是 WinDbg 输出的 tagCLS 结构与它的大小。
 
@@ -278,7 +278,7 @@ tagCLS。这种情况最终可能导致位于桌面堆上的目标内核类型�
 3.2. 监视桌面堆
 ***************
 
-桌面堆用于为 win32k.sys 驱动程序存储 GUI 对象【3】。
+桌面堆用于为 win32k.sys 驱动程序存储 GUI 对象 [3]_ 。
 为了监视桌面堆，我个人使用 PyKd，一个赋予 WinDbg 调试器 Python 编程能力的拓展。
 我使用 PyKd 借助硬件断点来实现软挂钩并且在开发过程中使用
 Python 回调函数来做分析。不过，出于完整性考虑，
@@ -306,7 +306,7 @@ WinDbg 输出的回调逻辑。
 
 win32k 使用用户模式回调函数来实现像应用程序定义的钩子和
 与用户模式交换数据等用户模式的操作。
-考虑到 win32k 的内部机制已经在 Tarjei Mandt 的研究【3】中详细阐述，
+考虑到 win32k 的内部机制已经在 Tarjei Mandt 的研究 [3]_ 中详细阐述，
 我将会只提供对利用该漏洞所需要的结构做一个简单的介绍。
 
 下面这个给 PyKd 钩子的回调用于获取 PEB.KernelCallbackTable 的地址：
@@ -477,7 +477,7 @@ UnregisterClass 函数，那会怎样？
 
 利用这种类型漏洞的经典方式就是设置通过 SetWindowTextW 设置窗口的标题栏，
 并因此强制实现任意大小的桌面堆分配。唯一需要注意的是，使用这种技巧的时候，
-不允许缓冲区中存在单字零，并且为了结束字符串【3】最后两个字节必须是零。
+不允许缓冲区中存在单字零，并且为了结束字符串 [3]_ 最后两个字节必须是零。
 
 .. code:: c
 
@@ -539,7 +539,7 @@ UnregisterClass 函数，那会怎样？
 -----------
 
 有几个可以用来利用这个漏洞的方法。其中著名的技巧是反转位于
-tagCLS【8】中的 CSF\_flags 结构的 Server Side Proc 域。
+tagCLS [8]_ 中的 CSF\_flags 结构的 Server Side Proc 域。
 不过，我决定使用一种会引入一个额外的 tagWND 结构的方法。
 
 4.1. 单字零的问题
@@ -573,7 +573,7 @@ SetWindowTextW 技巧只能控制自减的最后两个字节。 这在 32
 
 看似 win32k!DefSetText 可以用来触发桌面堆的分配。
 具体讲，该函数可以通过直接调用 NtUserDefSetText 系统调用 由
-user32!NtUserDefSetText【4】调用到：
+user32!NtUserDefSetText [4]_ 调用到：
 
 ::
 
@@ -602,7 +602,7 @@ user32!NtUserDefSetText【4】调用到：
 
 现在，我将介绍一些用于从用户模式读取桌面堆的结构。
 需要注意的是所有的用户对象都被索引到了一张每会话的句柄表中，该表位于
-win32k!gpvSharedBase【3】，并且该区被映射到了每一个 GUI
+win32k!gpvSharedBase [3]_ ，并且该区被映射到了每一个 GUI
 进程（用户模式）。这对漏洞利用程序开发者来说是一个天大的好消息，
 因此我们可以从用户模式读取桌面堆的任意内容。这个特性可以看作是一个强有力的信息泄漏。
 因为我们可以从用户模式映射的桌面堆获取任意桌面堆对象的内容，
@@ -610,8 +610,8 @@ win32k!gpvSharedBase【3】，并且该区被映射到了每一个 GUI
 更具体地讲，在将其替换为利用 NtUserDefSetText 系统调用篡改过的 tagCLS 之前，
 我们使用桌面堆泄漏来复制一份 tagCLS。在我们拿到一份有效的 tagCLS 对象的复本后，
 我们修改位于偏移 0x58 处的指针，该指针在后面将会用来实现任意自减。
-读取用户模式映射的桌面堆的过程已经在 Tarjei 的论文【3】与 Aaron
-的论文【4】中阐述。简单讲，
+读取用户模式映射的桌面堆的过程已经在 Tarjei 的论文 [3]_ 与 Aaron
+的论文 [4]_ 中阐述。简单讲，
 我们能用 NtCurrentTeb() 来定位 Win32ClientInfo 结构：
 
 .. code:: c
@@ -689,7 +689,7 @@ aheList 成员指向一个 win32k!\_HANDLEENTRY
 4.3 tagWND 结构
 ***************
 
-我决定使用 Nils【10】阐述的技巧，该技巧从曾用于 Pwn2Own 2013。
+我决定使用 Nils [10]_ 阐述的技巧，该技巧从曾用于 Pwn2Own 2013。
 首先，我创建了一个新的 win32k 窗口对象，也就是 tagWND 结构。 接着，把
 shellcode 存储到它的的窗口过程中。再接着，
 多次触发释放后重用来反转刚刚创建的 tagWND 结构的 bServerSideWindowProc
@@ -733,7 +733,7 @@ SendMessage(pwndHwnd, 0x1337, 0x1337, 0x0) 函数。
 4.4. 代码注入
 *************
 
-考虑到大家蛮关注 Hacking Team 的本地提权漏洞转储【11】，我使用在 Cesar
+考虑到大家蛮关注 Hacking Team 的本地提权漏洞转储 [11]_ ，我使用在 Cesar
 Cerrudo 的简易本地 Windows 内核漏洞利用论文中阐述的内核 shellcode 把
 winlogon.exe 进程的 ACL 清零。然后将计算器的 shellcode 注入到
 winlogon.exe 进程的内存空间。最后，使用 CreateRemoteThread
@@ -787,50 +787,50 @@ Adams。他们的贡献使得我这次漏洞利用程序的开发变得更轻松
 -------------------
 
 
-[1] Microsoft, "Microsoft Security Bulletin MS15-061," 9 June 2015.
-[Online]. Available:
-https://technet.microsoft.com/en-us/library/security/ms15-061.aspx.
+.. [1] Microsoft, "Microsoft Security Bulletin MS15-061," 9 June 2015.
+       [Online]. Available:
+       https://technet.microsoft.com/en-us/library/security/ms15-061.aspx.
 
-[2] U. Yavo, "Class Dismissed: 4 Use-After-Free Vulnerabilities in
-Windows," 14 July 2015. [Online]. Available:
-http://breakingmalware.com/vulnerabilities/class-dismissed-4-use-after-free-vulnerabilities-in-windows/.
+.. [2] U. Yavo, "Class Dismissed: 4 Use-After-Free Vulnerabilities in
+       Windows," 14 July 2015. [Online]. Available:
+       http://breakingmalware.com/vulnerabilities/class-dismissed-4-use-after-free-vulnerabilities-in-windows/.
 
-[3] T. Mandt, "Kernel Attacks through User-Mode Callbacks," 2011.
-[Online]. Available:
-https://media.blackhat.com/bh-us-11/Mandt/BH\_US\_11\_Mandt\_win32k\_WP.pdf.
+.. [3] T. Mandt, "Kernel Attacks through User-Mode Callbacks," 2011.
+       [Online]. Available:
+       https://media.blackhat.com/bh-us-11/Mandt/BH\_US\_11\_Mandt\_win32k\_WP.pdf.
 
-[4] A. Adams, "Exploiting the win32k!xxxEnableWndSBArrows use-after-free
-(CVE-2015-0057) bug on both 32-bit and 64-bit," 8 July 2015. [Online].
-Available:
-https://www.nccgroup.trust/globalassets/newsroom/uk/blog/documents/2015/07/exploiting-cve-2015.pdf.
+.. [4] A. Adams, "Exploiting the win32k!xxxEnableWndSBArrows use-after-free
+       (CVE-2015-0057) bug on both 32-bit and 64-bit," 8 July 2015. [Online].
+       Available:
+       https://www.nccgroup.trust/globalassets/newsroom/uk/blog/documents/2015/07/exploiting-cve-2015.pdf.
 
-[5] Microsoft, "About Window Classes," [Online]. Available:
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms633574(v=vs.85).aspx#system.
+.. [5] Microsoft, "About Window Classes," [Online]. Available:
+       https://msdn.microsoft.com/en-us/library/windows/desktop/ms633574(v=vs.85).aspx#system.
 
-[6] Microsoft, "About Atom Tables," [Online]. Available:
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms649053(v=vs.85).aspx.
+.. [6] Microsoft, "About Atom Tables," [Online]. Available:
+       https://msdn.microsoft.com/en-us/library/windows/desktop/ms649053(v=vs.85).aspx.
 
-[7] Microsoft, "CreateWindowEx function," [Online]. Available:
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms632680(v=vs.85).aspx.
+.. [7] Microsoft, "CreateWindowEx function," [Online]. Available:
+       https://msdn.microsoft.com/en-us/library/windows/desktop/ms632680(v=vs.85).aspx.
 
-[8] J. Tang, "Analysis of CVE-2015-2360 - Duqu 2.0 Zero Day
-Vulnerability," Trend Micro, 17 June 2015. [Online]. Available:
-http://blog.trendmicro.com/trendlabs-security-intelligence/analysis-of-cve-2015-2360-duqu-2-0-zero-day-vulnerability/.
+.. [8] J. Tang, "Analysis of CVE-2015-2360 - Duqu 2.0 Zero Day
+       Vulnerability," Trend Micro, 17 June 2015. [Online]. Available:
+       http://blog.trendmicro.com/trendlabs-security-intelligence/analysis-of-cve-2015-2360-duqu-2-0-zero-day-vulnerability/.
 
-[9] M. Jurczyk, "Windows X86 System Call Table
-(NT/2000/XP/2003/Vista/2008/7/8)," Team Vexillium, [Online]. Available:
-http://j00ru.vexillium.org/ntapi/.
+.. [9] M. Jurczyk, "Windows X86 System Call Table
+       (NT/2000/XP/2003/Vista/2008/7/8)," Team Vexillium, [Online]. Available:
+       http://j00ru.vexillium.org/ntapi/.
 
-[10] Nils, "MWR Labs Pwn2Own 2013 Write-up - Kernel Exploit," 6
-September 2013. [Online]. Available:
-https://labs.mwrinfosecurity.com/blog/2013/09/06/mwr-labs-pwn2own-2013-write-up---kernel-exploit/.
+.. [10] Nils, "MWR Labs Pwn2Own 2013 Write-up - Kernel Exploit," 6
+        September 2013. [Online]. Available:
+        https://labs.mwrinfosecurity.com/blog/2013/09/06/mwr-labs-pwn2own-2013-write-up---kernel-exploit/.
 
-[11] Hacking Team, "hacking-team-windows-kernel-lpe," [Online].
-Available: https://github.com/vlad902/hacking-team-windows-kernel-lpe.
+.. [11] Hacking Team, "hacking-team-windows-kernel-lpe," [Online].
+        Available: https://github.com/vlad902/hacking-team-windows-kernel-lpe.
 
-[12] C. Cerrudo, "Easy local Windows Kernel exploitation," IOActive,
-2012. [Online]. Available:
-https://media.blackhat.com/bh-us-12/Briefings/Cerrudo/BH\_US\_12\_Cerrudo\_Windows\_Kernel\_WP.pdf.
+.. [12] C. Cerrudo, "Easy local Windows Kernel exploitation," IOActive,
+        2012. [Online]. Available:
+        https://media.blackhat.com/bh-us-12/Briefings/Cerrudo/BH\_US\_12\_Cerrudo\_Windows\_Kernel\_WP.pdf.
 
 .. |image0| image:: calc.png
 
