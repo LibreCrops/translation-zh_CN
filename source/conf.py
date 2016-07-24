@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'LibreCrops 外文翻译项目'
+project = u'LibreCrops 外文翻译项目'
 copyright = '2016, Gu Zhengxiong'
 author = 'Gu Zhengxiong'
 
