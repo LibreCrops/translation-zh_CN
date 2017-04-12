@@ -16,9 +16,8 @@ Kernel Attacks Through User-Mode Callbacks
 `论文原文 <https://media.blackhat.com/bh-us-11/Mandt/BH_US_11_Mandt_win32k_WP.pdf>`__
 `中文翻译 <http://translation-zh-cn.readthedocs.io/en/latest/tarjei.html>`__
 
--  作者：Tarjei Mandt
--  译者：谷征雄 rectigu@gmail.com
--  维护：谷征雄 rectigu@gmail.com
+-  作者：Tarjei
+-  译者： NoviceLive
 -  中文翻译授权：经作者许可，采用 `知识共享“署名 3.0
    中国大陆” <http://creativecommons.org/licenses/by/3.0/cn/>`__
    许可协议授权
